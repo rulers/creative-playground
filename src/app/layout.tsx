@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Creative Playground",
+  title: "Liminal — Creative Playground",
   description:
-    "A playground for experiments with code, graphics, simulation, and sound.",
+    "001 — Liminal. 光が重なり、ほどけ、またひとつになる。コードでつくる、表現と実験の遊び場。",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -39,7 +39,13 @@ WebGL / Shader / Generative Art / Simulation / Creative Coding など、
 
 ## Works
 
-初期段階では、これまで制作・実験してきたものを中心に掲載予定です。
+### 001 — Liminal
+
+Phase 1のために制作した、光の輪がゆっくりと変形するオリジナルのGLSL作品。
+1枚の平面と1つのShaderMaterialで描画し、画像・動画・外部フォントは使用しません。
+ポインターにわずかに反応し、PAUSE / PLAYで停止・再開できます。
+
+今後は、これまで制作・実験してきたものも掲載予定です。
 
 ### 01 — Shader / Game of Life
 
@@ -123,7 +129,11 @@ WebGL / Shader固有の処理とUIを分離し、作品が増えても各Experim
 
 ## Deployment
 
-GitHub Pagesで公開予定です。
+GitHub Pagesのプロジェクトサイト `/creative-playground/` 向けに静的出力します。
+GitHubの **Settings → Pages → Source: GitHub Actions** を選択してください。
+`main` へのpushとPRでlint・buildを実行し、静的ファイルをartifactとして保存します。
+公開はPagesのSource設定後、Actionsの **Build and deploy GitHub Pages → Run workflow → main** から実行します。
+初期設定前のpushではdeployをスキップするため、Pages未設定でもCIを実行できます。
 
 ```text
 main
@@ -132,14 +142,54 @@ GitHub Actions
   ↓
 Next.js Static Export
   ↓
+Run workflow（公開時）
+  ↓
 GitHub Pages
 ```
+
+## Local development
+
+Node.js 22.13以上（22系）、または24以上を使用します。
+
+```sh
+npm install
+npm run dev
+```
+
+```sh
+npm run lint
+npm run build
+```
+
+`npm run build` で `out/` に静的ファイルを出力します。
+静的出力のため `next start` は使わず、任意の静的HTTPサーバーで `out/` を配信します。
+GitHub Pagesと同じサブパスを検証する場合：
+
+```sh
+NEXT_PUBLIC_BASE_PATH=/creative-playground npm run build
+# out/ を /creative-playground/ にマウントして配信
+```
+
+### Phase 1 implementation
+
+- `src/components/first-visual.tsx`: Canvasと再生UI、OSのモーション設定との同期。
+- `src/webgl/scenes/liminal-scene.ts`: Three.jsの初期化、描画、リサイズ、停止・破棄。
+- `src/webgl/shaders/liminal.ts`: 頂点・フラグメントGLSL。追加ローダー不要の文字列として管理。
+- `src/app/page.tsx` / `globals.css`: ページ構造、レスポンシブUI、静止フォールバック。
+
+描画解像度はDPR 1.5・200万画素を上限とし、タブ非表示時と画面外では描画を停止します。
+`prefers-reduced-motion: reduce` では1フレームのみ描画し、ポインター反応も停止します。
+WebGL非対応・コンテキスト喪失時はCSSによる静止作品を表示します。
+リサイズや復帰に必要なフレームは、停止中でも描画します。
+
+ブラウザ確認項目：PC / モバイル縦横、PAUSE / PLAY、SCROLLと戻るリンク、
+OSのモーション設定変更、WebGL非対応、コンテキスト喪失・復帰、タブ切替。
 
 ## Status
 
 🚧 Experimental / Work in Progress
 
-現在はコンセプト設計およびMVP構築段階です。
+Phase 1 — First Visualを実装済み。複数作品のナビゲーションはPhase 2で追加予定です。
 
 ## Philosophy
 

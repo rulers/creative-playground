@@ -1,0 +1,12 @@
+{
+    "eslint.run": "onSave",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "chat.tools.terminal.autoApprove": {
+        "/^rtk proxy ruby -e 'require \"yaml\"; path = \"/Users/ag/\\.codex/\\.chatgpt-projects/g-p-6a95b3ade0dc8191b15ce7ed402527b4/projects/creative-playground/\\.github/agents/creative-frontend\\.agent\\.md\"; text = File\\.read\\(path\\); frontmatter = text\\[/\\\\A---\\\\n\\(\\.\\*\\?\\)\\\\n---/m, 1\\]; abort \"missing frontmatter\" unless frontmatter; p YAML\\.safe_load\\(frontmatter\\)'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

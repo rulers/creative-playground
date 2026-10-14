@@ -189,7 +189,34 @@ OSのモーション設定変更、WebGL非対応、コンテキスト喪失・�
 
 🚧 Experimental / Work in Progress
 
-Phase 1 — First Visualを実装済み。複数作品のナビゲーションはPhase 2で追加予定です。
+Phase 1（First Visual）、Phase 2（Works Navigation）、Phase 3（Interactive Playground）、Phase 4（Experiment Archive）を実装済みです。
+
+### Phase 3 / 4 の仕様
+
+- **Liminal の EXPERIMENT パネル**（初期状態は折りたたみ）: SPEED / DENSITY / PALETTE / RESET。値はShader uniformに直接反映され、PAUSE中・reduced motion中も即時に再描画されます。
+- **003 — Life**: 決定的なシード付きConway's Game of Life。盤面は最大96×96、更新は最大8世代/秒、端はつながったtoroidal。クリック / タッチ / ドラッグでセルを描画（キーボードは矢印キー + Space）。PLAY/PAUSE・STEP・RESET・RESEEDはボタンで操作でき、reduced motionでは自動再生せずSTEPのみ使えます。ルールは `src/webgl/life/life-engine.ts`（描画・UI非依存）。
+- **Sound**: Web Audio APIによる生成音。自動再生なし、`SOUND` ボタンで明示的にON、低音量（最大0.05）。マイク権限は不要。タブ非表示・作品が画面外・アンマウントで停止します。AudioContext非対応ブラウザでは `NO AUDIO` 表示。音に合わせて作品が控えめに反応し、reduced motionでは視覚反応を行いません。
+- **共有（COPY LINK）**: `?work=liminal|life` と設定をURLに保存します。
+  - Liminal: `speed`, `density`, `palette`, `t`（アニメーション位相）
+  - Life: `seed`, `w`, `h`, `fill`, `gen`, `cells`（現在のセルを1bit/cellのbase64で保存）
+  - 共有リンクは常に停止状態・音OFFで開き、該当セクションへスクロールします。数値は範囲内に丸め、不正値は既定値にフォールバック。`cells` は長さが盤面と厳密に一致しなければ破棄し、シードの初期パターンを使います。無関係なクエリとbasePathは保持されます。
+- **SAVE PNG**: Liminalは保存直前に全解像度で再描画して読み出し（`preserveDrawingBuffer` は使いません）、Lifeは固定解像度のオフスクリーンcanvasに描画します。ファイル名に設定（speed/density/palette/t、またはseed/generation）を含め、保存後に設定のキャプションを表示します。グラフィックス非対応時は保存ボタンを無効化し、その旨を表示します。
+- **Experiment notes**: 各作品の意図・操作・発見・GitHubソースへのリンクを `src/data/works.ts` で一元管理し、作品の下に表示します。
+
+### チェック
+
+```sh
+npm run lint
+npm test            # Game of Life のルール / シード / URL検証のNode標準テスト
+NEXT_PUBLIC_BASE_PATH=/creative-playground NEXT_TELEMETRY_DISABLED=1 npm run build
+```
+
+### 既知の制限
+
+- Liminalの共有は位相 `t` を再現するため、リンクを開くと停止状態から始まります（再生はPLAYで再開）。
+- 音は共有されず、常に手動でONにします。同時に鳴らせる作品は1つだけです。
+- LifeはCanvas 2Dで描画します（WebGLではありません）。盤面サイズはUIから変更できません（URLの `w` / `h` で8〜96）。
+- 共有リンク・PNGはクライアントのみで生成され、サーバー・保存先はありません。
 
 ## Philosophy
 

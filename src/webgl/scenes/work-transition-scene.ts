@@ -81,6 +81,9 @@ export function createWorkTransitionScene(
   let progress = 0;
   let paused = false;
   let reducedMotion = false;
+  let liminalSpeed = 1;
+  let stillTime = 0;
+  let audioLevel = 0;
   let visible = false;
   let contextLost = false;
   let failed = false;
@@ -285,11 +288,13 @@ export function createWorkTransitionScene(
     const delta = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0;
     lastTime = time;
     if (!paused) {
-      liminal.uniforms.uTime.value += delta;
+      liminal.uniforms.uTime.value += delta * liminalSpeed;
       liminalPointer.lerp(targetLiminalPointer, 1 - Math.exp(-delta * 4));
       liminal.uniforms.uPointer.value.copy(liminalPointer);
     }
     field.uniforms.uTime.value += delta;
+    audioLevel = audioLevel < 0.002 ? 0 : audioLevel * Math.exp(-delta * 3.5);
+    liminal.uniforms.uAudioLevel.value = audioLevel;
     fieldPointer.lerp(targetFieldPointer, 1 - Math.exp(-delta * 5));
     field.uniforms.uPointer.value.copy(fieldPointer);
     transitionPointer.lerp(targetWarpPointer, 1 - Math.exp(-delta * 4));
@@ -348,7 +353,8 @@ export function createWorkTransitionScene(
   }
 
   function onLiminalPointerMove(event: PointerEvent) {
-    if (event.pointerType !== "mouse" || paused || reducedMotion) return;
+    if (paused || reducedMotion) return;
+    if (event.target instanceof Element && event.target.closest("button, input, a, label, .exp-panel")) return;
     const bounds = liminalElement.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return;
     targetLiminalPointer.set(
@@ -431,6 +437,7 @@ export function createWorkTransitionScene(
   visibleElements.forEach((element) => visibilityObserver.observe(element));
   liminalElement.addEventListener("pointermove", onLiminalPointerMove, { passive: true });
   liminalElement.addEventListener("pointerleave", clearLiminalPointer);
+  liminalElement.addEventListener("pointercancel", clearLiminalPointer);
   fieldElement.addEventListener("pointerdown", onFieldPointer, { passive: true });
   fieldElement.addEventListener("pointermove", onFieldPointer, { passive: true });
   fieldElement.addEventListener("pointerleave", clearFieldPointer);
@@ -450,10 +457,74 @@ export function createWorkTransitionScene(
       paused = value;
       updatePlayback();
     },
+    setLiminalSpeed(value: number) {
+      liminalSpeed = value;
+    },
+    setLiminalDensity(value: number) {
+      liminal.uniforms.uDensity.value = value;
+      if (paused || reducedMotion) render();
+    },
+    setLiminalPalette(value: number) {
+      liminal.uniforms.uPalette.value = value;
+      if (paused || reducedMotion) render();
+    },
+    setLiminalTime(value: number) {
+      stillTime = Math.max(0, value);
+      liminal.uniforms.uTime.value = stillTime;
+      if (paused || reducedMotion) render();
+    },
+    getLiminalPointer(): { x: number; y: number } {
+      return { x: liminalPointer.x, y: liminalPointer.y };
+    },
+    /** Restores the rendered pointer offset; also the target so a paused snapshot does not drift. */
+    setLiminalPointer(x: number, y: number) {
+      const px = Math.max(-1, Math.min(1, x));
+      const py = Math.max(-1, Math.min(1, y));
+      liminalPointer.set(px, py);
+      targetLiminalPointer.set(px, py);
+      liminal.uniforms.uPointer.value.copy(liminalPointer);
+      if (paused || reducedMotion) render();
+    },
+    getLiminalTime(): number {
+      return liminal.uniforms.uTime.value;
+    },
+    /** Visual reaction to a sounding note; ignored with reduced motion. */
+    pulseAudio(level: number) {
+      if (reducedMotion) return;
+      audioLevel = Math.max(audioLevel, Math.min(1, Math.max(0, level)));
+    },
+    /**
+     * Forces a full-resolution, liminal-only render straight to the visible
+     * canvas and immediately reads it back as a PNG data URL, then restores
+     * whatever was previously displayed. Avoids permanently enabling
+     * preserveDrawingBuffer just for screenshots. The audio glow is excluded
+     * so the image matches what a shared link reproduces.
+     */
+    captureLiminalPng(): string | null {
+      if (disposed || contextLost || failed) return null;
+      renderer.getDrawingBufferSize(drawingBufferSize);
+      if (!drawingBufferSize.x || !drawingBufferSize.y) return null;
+      renderer.setRenderTarget(null);
+      renderer.setViewport(0, 0, viewportWidth, viewportHeight);
+      setPassResolution(drawingBufferSize.x, drawingBufferSize.y);
+      liminal.uniforms.uAudioLevel.value = 0;
+      renderer.render(liminal.scene, liminal.camera);
+      let dataUrl: string | null = null;
+      try {
+        dataUrl = canvas.toDataURL("image/png");
+      } catch {
+        dataUrl = null;
+      }
+      liminal.uniforms.uAudioLevel.value = audioLevel;
+      render();
+      return dataUrl;
+    },
     setReducedMotion(value: boolean) {
       reducedMotion = value;
       if (reducedMotion) {
-        liminal.uniforms.uTime.value = 0;
+        liminal.uniforms.uTime.value = stillTime;
+        liminal.uniforms.uAudioLevel.value = 0;
+        audioLevel = 0;
         field.uniforms.uTime.value = 0;
       }
       updatePlayback();
@@ -467,6 +538,7 @@ export function createWorkTransitionScene(
       document.fonts.removeEventListener("loadingdone", onFontsLoaded);
       liminalElement.removeEventListener("pointermove", onLiminalPointerMove);
       liminalElement.removeEventListener("pointerleave", clearLiminalPointer);
+      liminalElement.removeEventListener("pointercancel", clearLiminalPointer);
       fieldElement.removeEventListener("pointerdown", onFieldPointer);
       fieldElement.removeEventListener("pointermove", onFieldPointer);
       fieldElement.removeEventListener("pointerleave", clearFieldPointer);

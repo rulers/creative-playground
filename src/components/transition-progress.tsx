@@ -10,6 +10,20 @@ import {
   type ReactNode,
 } from "react";
 import { createWorkTransitionScene } from "@/webgl/scenes/work-transition-scene";
+import { useShareInit } from "@/components/use-share-init";
+
+export type LiminalSettings = { speed: number; density: number; palette: number };
+export const LIMINAL_DEFAULT_SETTINGS: LiminalSettings = { speed: 1, density: 1, palette: 0 };
+
+type LiminalControls = {
+  settings: LiminalSettings;
+  update: (patch: Partial<LiminalSettings>) => void;
+  reset: () => void;
+  getTime: () => number;
+  getPointer: () => { x: number; y: number };
+  capturePng: () => string | null;
+  pulse: (level: number) => void;
+};
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
 const subscribeToMotion = (onChange: () => void) => {
@@ -26,6 +40,7 @@ type TransitionContextValue = {
   paused: boolean;
   available: boolean;
   togglePaused: () => void;
+  liminal: LiminalControls;
 };
 
 const TransitionContext = createContext<TransitionContextValue>({
@@ -34,6 +49,15 @@ const TransitionContext = createContext<TransitionContextValue>({
   paused: true,
   available: false,
   togglePaused: () => {},
+  liminal: {
+    settings: LIMINAL_DEFAULT_SETTINGS,
+    update: () => {},
+    reset: () => {},
+    getTime: () => 0,
+    getPointer: () => ({ x: 0, y: 0 }),
+    capturePng: () => null,
+    pulse: () => {},
+  },
 });
 
 export function useTransitionProgress() {
@@ -44,9 +68,19 @@ export function TransitionProgress({ children }: { children: ReactNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<ReturnType<typeof createWorkTransitionScene> | null>(null);
   const [progress, setProgress] = useState(0);
-  const [userPaused, setUserPaused] = useState(false);
+  const init = useShareInit();
+  const sharedLiminal = init.liminal;
+  // Shared links open paused; a user choice always wins afterwards.
+  const [pausedOverride, setPausedOverride] = useState<boolean | null>(null);
+  const [settingsOverride, setSettingsOverride] = useState<LiminalSettings | null>(null);
   const [available, setAvailable] = useState(false);
   const reducedMotion = useSyncExternalStore(subscribeToMotion, getReducedMotion, getServerMotion);
+  const userPaused = pausedOverride ?? sharedLiminal !== null;
+  const settings: LiminalSettings =
+    settingsOverride ??
+    (sharedLiminal
+      ? { speed: sharedLiminal.speed, density: sharedLiminal.density, palette: sharedLiminal.palette }
+      : LIMINAL_DEFAULT_SETTINGS);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -73,6 +107,20 @@ export function TransitionProgress({ children }: { children: ReactNode }) {
       sceneRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!sharedLiminal) return;
+    sceneRef.current?.setLiminalTime(sharedLiminal.time);
+    sceneRef.current?.setLiminalPointer(sharedLiminal.pointerX, sharedLiminal.pointerY);
+  }, [sharedLiminal]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.setLiminalSpeed(settings.speed);
+    scene.setLiminalDensity(settings.density);
+    scene.setLiminalPalette(settings.palette);
+  }, [settings.speed, settings.density, settings.palette]);
 
   useEffect(() => {
     sceneRef.current?.setTransition(progress);
@@ -135,12 +183,25 @@ export function TransitionProgress({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const contextValue = {
+  const contextValue: TransitionContextValue = {
     progress,
     reducedMotion,
     paused: userPaused || reducedMotion,
     available,
-    togglePaused: () => setUserPaused((current) => !current),
+    togglePaused: () => setPausedOverride(!userPaused),
+    liminal: {
+      settings,
+      update: (patch) => setSettingsOverride({ ...settings, ...patch }),
+      reset: () => {
+        setSettingsOverride(LIMINAL_DEFAULT_SETTINGS);
+        sceneRef.current?.setLiminalTime(0);
+        sceneRef.current?.setLiminalPointer(0, 0);
+      },
+      getTime: () => sceneRef.current?.getLiminalTime() ?? 0,
+      getPointer: () => sceneRef.current?.getLiminalPointer() ?? { x: 0, y: 0 },
+      capturePng: () => sceneRef.current?.captureLiminalPng() ?? null,
+      pulse: (level) => sceneRef.current?.pulseAudio(level),
+    },
   };
 
   return (

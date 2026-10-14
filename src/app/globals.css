@@ -214,3 +214,106 @@ main {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Phase 3/4: experiment panel, Life, tools and notes */
+.exp-panel {
+  position: absolute;
+  z-index: 3;
+  top: 84px;
+  right: var(--gutter);
+  width: min(280px, calc(100vw - var(--gutter) * 2));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.exp-toggle, .exp-button, .exp-chip, .exp-field span, .exp-palette legend, .exp-status, .exp-hint, .life-counter, .exp-notes dt {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+.exp-toggle, .exp-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #3a4040;
+  background: #08090a99;
+  color: #a1a7a4;
+  cursor: pointer;
+}
+.exp-toggle:hover, .exp-button:not(:disabled):hover { color: #d4e5b9; border-color: #6f898a; }
+.exp-button[aria-pressed="true"], .exp-toggle[aria-expanded="true"] { color: #d4e5b9; border-color: #d4e5b9; }
+.exp-button:disabled { opacity: .45; cursor: default; }
+.exp-body {
+  width: 100%;
+  margin-top: 8px;
+  padding: 16px;
+  max-height: max(140px, min(440px, calc(100svh - 270px)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #2a2e2e;
+  background: #08090ad9;
+  backdrop-filter: blur(6px);
+}
+.exp-body[hidden] { display: none; }
+.exp-field { display: block; margin-bottom: 14px; color: #a1a7a4; }
+.exp-field span { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.exp-field input[type="range"] { display: block; width: 100%; min-height: 32px; margin: 0; accent-color: #d4e5b9; }
+.exp-palette { min-width: 0; margin: 0 0 14px; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.exp-palette legend { width: 100%; padding: 0; margin-bottom: 6px; color: #a1a7a4; }
+.exp-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border: 1px solid #3a4040; color: #a1a7a4; cursor: pointer; }
+.exp-chip input { margin: 0; accent-color: #d4e5b9; }
+.exp-chip:has(input:checked) { color: #d4e5b9; border-color: #d4e5b9; }
+.exp-chip:has(input:focus-visible) { outline: 1px solid #dcf4c9; outline-offset: 4px; }
+.exp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.exp-status, .exp-hint { margin-top: 10px; min-height: 1.8em; color: #9ba1a0; line-height: 1.8; overflow-wrap: anywhere; }
+
+.life-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: auto;
+  min-height: max(100svh, 560px);
+  padding: 96px var(--gutter) max(36px, env(safe-area-inset-bottom));
+  background: #08090a;
+}
+.life-board { position: relative; flex: 1 1 auto; min-height: 240px; }
+.life-canvas {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  outline: 1px solid #242727;
+}
+.life-canvas:focus-visible { outline: 1px solid #dcf4c9; outline-offset: 4px; }
+.life-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 32px; }
+.life-footer .work-title { position: static; }
+.life-controls { flex: 1 1 260px; max-width: 560px; min-width: 0; }
+.life-counter { margin-bottom: 10px; color: #a1a7a4; }
+
+.notes-band { padding: 56px var(--gutter) 64px; background: #08090a; border-top: 1px solid #242727; }
+.work-note .exp-notes { grid-column: 1 / -1; }
+.exp-notes h3 { font-weight: 400; margin-bottom: 24px; }
+.exp-notes h3 span { margin-inline: 10px; color: #5d6464; }
+.exp-notes dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 0; }
+.exp-notes dt { color: #a1a7a4; }
+.exp-notes dd { margin: 10px 0 0; color: #9ba1a0; font-size: 12px; line-height: 2.1; letter-spacing: .04em; }
+
+@media (max-width: 900px) {
+  .exp-notes dl { grid-template-columns: 1fr; gap: 20px; }
+}
+
+@media (max-width: 600px) {
+  .exp-panel { top: 76px; }
+  .life-stage { padding-top: 88px; gap: 16px; }
+  .exp-actions { gap: 6px; }
+  .exp-button { padding: 0 10px; }
+}
+
+@media (max-height: 500px) and (min-width: 601px) {
+  .exp-panel { top: 64px; }
+  .exp-body { max-height: max(100px, calc(100svh - 190px)); }
+  .life-stage { padding-top: 72px; min-height: 480px; }
+}

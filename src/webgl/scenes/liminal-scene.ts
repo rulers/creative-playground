@@ -8,6 +8,9 @@ export function createLiminalScene() {
     uResolution: { value: new Vector2(1, 1) },
     uTime: { value: 0 },
     uPointer: { value: new Vector2() },
+    uDensity: { value: 1 },
+    uPalette: { value: 0 },
+    uAudioLevel: { value: 0 },
   };
   const geometry = new PlaneGeometry(2, 2);
   const material = new ShaderMaterial({
